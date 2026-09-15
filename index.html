@@ -3,461 +3,378 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>CEO Library</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
 *{box-sizing:border-box}
 
-html,body{
-    margin:0;
-    width:100%;
-    height:100%;
-    font-family:Arial,sans-serif;
-    background:#e9edf2;
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#f4f6f8;
+ color:#202124;
 }
 
-#app{
-    width:100%;
-    height:100vh;
-    display:flex;
-    flex-direction:column;
+header{
+ background:white;
+ padding:18px 25px;
+ border-bottom:1px solid #ddd;
 }
 
-#toolbar{
-    min-height:52px;
-    background:#fff;
-    border-bottom:1px solid #d5d5d5;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:6px 10px;
-    box-shadow:0 1px 4px rgba(0,0,0,.08);
-    z-index:10;
+header h2{
+ margin:0;
+ font-size:22px;
 }
 
-button{
-    border:1px solid #ccc;
-    background:#fff;
-    padding:7px 12px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:14px;
+#library{
+ padding:20px;
+ max-width:1200px;
+ margin:auto;
 }
 
-button:hover{
-    background:#f2f2f2;
+.folder{
+ margin-bottom:25px;
 }
 
-button:disabled{
-    opacity:.4;
-    cursor:default;
+.folder-title{
+ font-size:18px;
+ font-weight:bold;
+ margin-bottom:12px;
 }
 
-#pageInfo{
-    min-width:100px;
-    text-align:center;
-    font-size:14px;
+.files{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fill,minmax(210px,1fr));
+ gap:15px;
+}
+
+.file{
+ background:white;
+ border:1px solid #ddd;
+ border-radius:9px;
+ padding:16px;
+ cursor:pointer;
+ min-height:110px;
+ box-shadow:0 2px 5px rgba(0,0,0,.05);
+ transition:.15s;
+}
+
+.file:hover{
+ transform:translateY(-2px);
+ box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+
+.icon{
+ font-size:30px;
+ margin-bottom:10px;
+}
+
+.name{
+ font-size:14px;
+ line-height:1.4;
 }
 
 #viewer{
-    flex:1;
-    overflow:auto;
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    padding:16px;
+ display:none;
+ position:fixed;
+ inset:0;
+ background:white;
+ z-index:1000;
 }
 
-#canvasWrapper{
-    position:relative;
+#viewerbar{
+ height:50px;
+ display:flex;
+ align-items:center;
+ gap:12px;
+ padding:6px 12px;
+ border-bottom:1px solid #ddd;
+ background:white;
 }
 
-canvas{
-    display:block;
-    background:#fff;
-    box-shadow:0 3px 15px rgba(0,0,0,.18);
+#viewerTitle{
+ flex:1;
+ overflow:hidden;
+ white-space:nowrap;
+ text-overflow:ellipsis;
+}
+
+button{
+ padding:7px 13px;
+ border:1px solid #ccc;
+ border-radius:6px;
+ background:white;
+ cursor:pointer;
+}
+
+button:hover{
+ background:#eee;
+}
+
+iframe{
+ width:100%;
+ height:calc(100vh - 50px);
+ border:0;
 }
 
 #loading{
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    background:rgba(255,255,255,.95);
-    padding:12px 20px;
-    border-radius:7px;
-    box-shadow:0 2px 10px rgba(0,0,0,.15);
-    display:none;
+ text-align:center;
+ padding:50px;
 }
 
-#error{
-    padding:30px;
-    text-align:center;
-    color:#a00000;
-    display:none;
+.subfolder{
+ margin-left:15px;
+ margin-top:20px;
 }
 
-@media(max-width:650px){
-    #toolbar{
-        gap:4px;
-        padding:5px;
-    }
+@media(max-width:600px){
+ #library{padding:10px}
 
-    button{
-        padding:6px 8px;
-        font-size:12px;
-    }
+ .files{
+  grid-template-columns:
+  repeat(2,1fr);
+ }
 
-    #pageInfo{
-        min-width:75px;
-        font-size:12px;
-    }
+ .file{
+  min-height:100px;
+  padding:12px;
+ }
 }
 </style>
 </head>
 
 <body>
 
-<div id="app">
+<header>
+<h2>CEO Library</h2>
+</header>
 
-    <div id="toolbar">
+<div id="library">
+ <div id="loading">Đang tải thư viện...</div>
+</div>
 
-        <button id="prevBtn" onclick="prevPage()">◀</button>
 
-        <span id="pageInfo">
-            <span id="pageNum">1</span> /
-            <span id="pageCount">...</span>
-        </span>
+<div id="viewer">
 
-        <button id="nextBtn" onclick="nextPage()">▶</button>
+ <div id="viewerbar">
 
-        <button onclick="zoomOut()">−</button>
+  <button onclick="closeViewer()">← Thư viện</button>
 
-        <button onclick="fitWidth()">Vừa trang</button>
+  <div id="viewerTitle"></div>
 
-        <button onclick="zoomIn()">+</button>
+  <button onclick="fullscreen()">⛶</button>
 
-        <button onclick="fullscreen()">⛶</button>
+ </div>
 
-        <button onclick="openPDF()">PDF</button>
-
-    </div>
-
-    <div id="viewer">
-
-        <div id="canvasWrapper">
-            <canvas id="pdfCanvas"></canvas>
-            <div id="loading">Đang tải...</div>
-        </div>
-
-        <div id="error"></div>
-
-    </div>
+ <iframe id="pdfFrame"></iframe>
 
 </div>
 
 
 <script>
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+/* =========================================
+   THAY URL APPS SCRIPT CỦA ANH Ở ĐÂY
+========================================= */
+
+const API =
+"https://script.google.com/macros/s/THAY_DEPLOYMENT_ID/exec";
 
 
-const GITHUB_RAW =
-"https://raw.githubusercontent.com/hoangthanhtung80/CEO/main/";
+async function loadLibrary(){
+
+ try{
+
+  const response =
+  await fetch(API + "?action=library");
+
+  const data =
+  await response.json();
+
+  if(!data.success)
+   throw new Error(data.error);
+
+  const library =
+  document.getElementById("library");
+
+  library.innerHTML="";
+
+  renderItems(
+   data.folders,
+   library
+  );
+
+ }catch(err){
+
+  document.getElementById("library")
+  .innerHTML =
+  "<p>Không tải được thư viện.</p>";
+
+  console.error(err);
+
+ }
+
+}
 
 
-const params = new URLSearchParams(window.location.search);
+function renderItems(items,parent){
 
-const file = params.get("file");
+ items.forEach(item=>{
+
+  if(item.type==="folder"){
+
+   const folder =
+   document.createElement("div");
+
+   folder.className="folder";
+
+   const title =
+   document.createElement("div");
+
+   title.className="folder-title";
+
+   title.textContent =
+   item.name;
+
+   folder.appendChild(title);
+
+   const content =
+   document.createElement("div");
+
+   content.className="subfolder";
+
+   folder.appendChild(content);
+
+   parent.appendChild(folder);
+
+   renderItems(
+    item.children,
+    content
+   );
+
+  }
+
+ });
 
 
-let pdfDoc = null;
-let pageNum = 1;
-let scale = 1.2;
-let rendering = false;
-let pendingPage = null;
-
-const canvas =
-document.getElementById("pdfCanvas");
-
-const ctx =
-canvas.getContext("2d");
-
-const loading =
-document.getElementById("loading");
+ const files =
+ items.filter(
+  item=>item.type==="file"
+ );
 
 
-if(!file){
+ if(files.length){
 
-    showError(
-        "Chưa chọn tài liệu PDF.<br><br>" +
-        "URL phải có dạng:<br>" +
-        "?file=ten-file.pdf"
+  const grid =
+  document.createElement("div");
+
+  grid.className="files";
+
+
+  files.forEach(file=>{
+
+   const card =
+   document.createElement("div");
+
+   card.className="file";
+
+   card.innerHTML =
+   '<div class="icon">📄</div>'+
+   '<div class="name">'+
+   escapeHTML(file.name)+
+   '</div>';
+
+
+   card.onclick=()=>{
+
+    openPDF(
+     file.name,
+     file.preview
     );
 
-}else{
-
-    loadPDF();
-
-}
+   };
 
 
-function loadPDF(){
+   grid.appendChild(card);
 
-    loading.style.display="block";
+  });
 
-    const pdfURL =
-    GITHUB_RAW + encodeURIComponent(file);
 
-    pdfjsLib.getDocument(pdfURL).promise
+  parent.appendChild(grid);
 
-    .then(function(pdf){
-
-        pdfDoc = pdf;
-
-        document.getElementById("pageCount").textContent =
-        pdf.numPages;
-
-        loading.style.display="none";
-
-        fitWidth();
-
-    })
-
-    .catch(function(error){
-
-        console.error(error);
-
-        loading.style.display="none";
-
-        showError(
-            "Không tải được PDF.<br><br>" +
-            "Kiểm tra tên file hoặc repository."
-        );
-
-    });
+ }
 
 }
 
 
-function renderPage(num){
+function openPDF(name,url){
 
-    if(!pdfDoc) return;
+ document.getElementById(
+  "viewerTitle"
+ ).textContent=name;
 
-    if(rendering){
+ document.getElementById(
+  "pdfFrame"
+ ).src=url;
 
-        pendingPage = num;
-        return;
+ document.getElementById(
+  "viewer"
+ ).style.display="block";
 
-    }
-
-    rendering = true;
-    loading.style.display="block";
-
-    pdfDoc.getPage(num).then(function(page){
-
-        const viewport =
-        page.getViewport({scale:scale});
-
-        canvas.width =
-        Math.floor(viewport.width);
-
-        canvas.height =
-        Math.floor(viewport.height);
-
-        const renderContext = {
-            canvasContext:ctx,
-            viewport:viewport
-        };
-
-        page.render(renderContext).promise
-        .then(function(){
-
-            rendering=false;
-
-            loading.style.display="none";
-
-            document.getElementById("pageNum").textContent =
-            pageNum;
-
-            updateButtons();
-
-            if(pendingPage !== null){
-
-                const p = pendingPage;
-                pendingPage = null;
-
-                renderPage(p);
-
-            }
-
-        });
-
-    });
+ document.body.style.overflow="hidden";
 
 }
 
 
-function prevPage(){
+function closeViewer(){
 
-    if(!pdfDoc || pageNum<=1) return;
+ document.getElementById(
+  "viewer"
+ ).style.display="none";
 
-    pageNum--;
+ document.getElementById(
+  "pdfFrame"
+ ).src="";
 
-    renderPage(pageNum);
-
-    scrollTop();
-
-}
-
-
-function nextPage(){
-
-    if(!pdfDoc || pageNum>=pdfDoc.numPages) return;
-
-    pageNum++;
-
-    renderPage(pageNum);
-
-    scrollTop();
-
-}
-
-
-function zoomIn(){
-
-    scale += .15;
-
-    renderPage(pageNum);
-
-}
-
-
-function zoomOut(){
-
-    if(scale<=.4) return;
-
-    scale -= .15;
-
-    renderPage(pageNum);
-
-}
-
-
-function fitWidth(){
-
-    if(!pdfDoc) return;
-
-    pdfDoc.getPage(pageNum).then(function(page){
-
-        const base =
-        page.getViewport({scale:1});
-
-        const viewer =
-        document.getElementById("viewer");
-
-        const available =
-        viewer.clientWidth - 40;
-
-        scale =
-        available / base.width;
-
-        if(scale>2.2) scale=2.2;
-
-        renderPage(pageNum);
-
-    });
-
-}
-
-
-function updateButtons(){
-
-    document.getElementById("prevBtn").disabled =
-    pageNum<=1;
-
-    document.getElementById("nextBtn").disabled =
-    pageNum>=pdfDoc.numPages;
-
-}
-
-
-function scrollTop(){
-
-    document.getElementById("viewer").scrollTop=0;
+ document.body.style.overflow="";
 
 }
 
 
 function fullscreen(){
 
-    const element =
-    document.getElementById("app");
+ const viewer =
+ document.getElementById("viewer");
 
-    if(!document.fullscreenElement){
+ if(!document.fullscreenElement){
 
-        element.requestFullscreen();
+  viewer.requestFullscreen();
 
-    }else{
+ }else{
 
-        document.exitFullscreen();
+  document.exitFullscreen();
 
-    }
-
-}
-
-
-function openPDF(){
-
-    if(!file) return;
-
-    const url =
-    GITHUB_RAW + encodeURIComponent(file);
-
-    window.open(url,"_blank");
+ }
 
 }
 
 
-function showError(message){
+function escapeHTML(text){
 
-    document.getElementById("canvasWrapper").style.display =
-    "none";
+ const div =
+ document.createElement("div");
 
-    const error =
-    document.getElementById("error");
+ div.textContent=text;
 
-    error.innerHTML = message;
-
-    error.style.display =
-    "block";
+ return div.innerHTML;
 
 }
 
 
-window.addEventListener("keydown",function(e){
-
-    if(e.key==="ArrowLeft")
-        prevPage();
-
-    if(e.key==="ArrowRight")
-        nextPage();
-
-});
-
-
-window.addEventListener("resize",function(){
-
-    if(pdfDoc)
-        fitWidth();
-
-});
+loadLibrary();
 
 </script>
 
