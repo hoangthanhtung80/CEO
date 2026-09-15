@@ -1,298 +1,508 @@
 ```html
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>CEO Library</title>
 
-<style>
-*{box-sizing:border-box}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-body{
+<style>
+
+*{
+ box-sizing:border-box;
+}
+
+html,body{
  margin:0;
+ width:100%;
+ min-height:100%;
  font-family:Arial,sans-serif;
- background:#f4f6f8;
+ background:#f5f6f8;
  color:#202124;
 }
 
+
+/* =========================
+   HEADER
+========================= */
+
 header{
+ height:64px;
  background:white;
- padding:18px 25px;
  border-bottom:1px solid #ddd;
+ display:flex;
+ align-items:center;
+ padding:0 25px;
 }
 
-header h2{
+header h1{
  margin:0;
  font-size:22px;
 }
 
+
+/* =========================
+   LIBRARY
+========================= */
+
 #library{
- padding:20px;
  max-width:1200px;
  margin:auto;
+ padding:25px;
 }
 
 .folder{
- margin-bottom:25px;
+ margin-bottom:30px;
 }
 
-.folder-title{
+.folderTitle{
  font-size:18px;
- font-weight:bold;
- margin-bottom:12px;
+ font-weight:600;
+ margin:15px 0;
 }
 
-.files{
+.subfolder{
+ margin-left:15px;
+}
+
+.grid{
  display:grid;
  grid-template-columns:
  repeat(auto-fill,minmax(210px,1fr));
  gap:15px;
 }
 
-.file{
+.card{
  background:white;
  border:1px solid #ddd;
  border-radius:9px;
  padding:16px;
  cursor:pointer;
- min-height:110px;
- box-shadow:0 2px 5px rgba(0,0,0,.05);
+ min-height:120px;
  transition:.15s;
+ box-shadow:0 2px 5px rgba(0,0,0,.05);
 }
 
-.file:hover{
+.card:hover{
  transform:translateY(-2px);
- box-shadow:0 4px 12px rgba(0,0,0,.12);
+ box-shadow:0 5px 15px rgba(0,0,0,.12);
 }
 
-.icon{
- font-size:30px;
+.pdfIcon{
+ font-size:32px;
  margin-bottom:10px;
 }
 
-.name{
+.pdfName{
  font-size:14px;
- line-height:1.4;
+ line-height:1.45;
+ word-break:break-word;
 }
+
+#loadingLibrary{
+ text-align:center;
+ padding:60px;
+}
+
+
+/* =========================
+   VIEWER
+========================= */
 
 #viewer{
  display:none;
  position:fixed;
  inset:0;
- background:white;
- z-index:1000;
+ background:#e8eaed;
+ z-index:9999;
 }
 
-#viewerbar{
- height:50px;
+#toolbar{
+ height:54px;
+ background:white;
+ border-bottom:1px solid #ccc;
  display:flex;
  align-items:center;
- gap:12px;
- padding:6px 12px;
- border-bottom:1px solid #ddd;
- background:white;
+ gap:7px;
+ padding:6px 10px;
+ box-shadow:0 1px 5px rgba(0,0,0,.08);
 }
 
-#viewerTitle{
+#documentTitle{
  flex:1;
  overflow:hidden;
  white-space:nowrap;
  text-overflow:ellipsis;
+ font-size:14px;
 }
 
 button{
- padding:7px 13px;
  border:1px solid #ccc;
- border-radius:6px;
  background:white;
+ border-radius:6px;
+ padding:7px 11px;
  cursor:pointer;
 }
 
 button:hover{
- background:#eee;
+ background:#f1f3f4;
 }
 
-iframe{
- width:100%;
- height:calc(100vh - 50px);
- border:0;
+button:disabled{
+ opacity:.35;
+ cursor:default;
 }
 
-#loading{
+#pageInfo{
+ min-width:75px;
  text-align:center;
- padding:50px;
+ font-size:13px;
 }
 
-.subfolder{
- margin-left:15px;
- margin-top:20px;
+
+/* =========================
+   CANVAS
+========================= */
+
+#canvasArea{
+ height:calc(100vh - 54px);
+ overflow:auto;
+ padding:18px;
+ display:flex;
+ justify-content:center;
+ align-items:flex-start;
 }
 
-@media(max-width:600px){
- #library{padding:10px}
+#canvasWrapper{
+ position:relative;
+}
 
- .files{
+#pdfCanvas{
+ display:block;
+ background:white;
+ box-shadow:0 3px 15px rgba(0,0,0,.20);
+}
+
+#loadingPDF{
+ position:absolute;
+ top:30px;
+ left:50%;
+ transform:translateX(-50%);
+ background:white;
+ padding:10px 18px;
+ border-radius:7px;
+ box-shadow:0 2px 8px rgba(0,0,0,.15);
+ display:none;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media(max-width:650px){
+
+ header{
+  padding:0 12px;
+ }
+
+ #library{
+  padding:12px;
+ }
+
+ .grid{
   grid-template-columns:
   repeat(2,1fr);
  }
 
- .file{
-  min-height:100px;
+ .card{
   padding:12px;
+  min-height:105px;
  }
+
+ #toolbar{
+  gap:3px;
+  padding:5px;
+ }
+
+ button{
+  padding:6px 8px;
+  font-size:12px;
+ }
+
+ #documentTitle{
+  display:none;
+ }
+
 }
+
 </style>
+
 </head>
+
 
 <body>
 
+
 <header>
-<h2>CEO Library</h2>
+
+<h1>CEO Library</h1>
+
 </header>
 
+
 <div id="library">
- <div id="loading">Đang tải thư viện...</div>
+
+<div id="loadingLibrary">
+Đang tải thư viện...
 </div>
 
+</div>
+
+
+
+<!-- =========================
+     PDF VIEWER
+========================= -->
 
 <div id="viewer">
 
- <div id="viewerbar">
 
-  <button onclick="closeViewer()">← Thư viện</button>
+<div id="toolbar">
 
-  <div id="viewerTitle"></div>
 
-  <button onclick="fullscreen()">⛶</button>
+<button onclick="closeViewer()">
+← Thư viện
+</button>
 
- </div>
 
- <iframe id="pdfFrame"></iframe>
+<div id="documentTitle"></div>
+
+
+<button
+ id="prevBtn"
+ onclick="prevPage()">
+◀
+</button>
+
+
+<span id="pageInfo">
+
+<span id="pageNum">1</span>
+/
+<span id="pageCount">0</span>
+
+</span>
+
+
+<button
+ id="nextBtn"
+ onclick="nextPage()">
+▶
+</button>
+
+
+<button onclick="zoomOut()">
+−
+</button>
+
+
+<button onclick="fitWidth()">
+Vừa trang
+</button>
+
+
+<button onclick="zoomIn()">
++
+</button>
+
+
+<button onclick="fullScreen()">
+⛶
+</button>
+
 
 </div>
+
+
+
+<div id="canvasArea">
+
+<div id="canvasWrapper">
+
+<canvas id="pdfCanvas"></canvas>
+
+<div id="loadingPDF">
+Đang tải...
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
 
 
 <script>
 
-/* =========================================
-   THAY URL APPS SCRIPT CỦA ANH Ở ĐÂY
-========================================= */
+/* ======================================
+   DÁN URL APPS SCRIPT /exec VÀO ĐÂY
+====================================== */
 
-const API =
-"https://script.google.com/macros/s/AKfycbzN9sa2eVvqxnVRJYaXcLow9EiFWJzCpDj3ZTe_vPHaohXX4wgBlEj2C1jo_nAUvMaI/exec";
+const API_URL =
+"https://script.google.com/macros/s/THAY_DEPLOYMENT_ID/exec";
 
+
+/* ======================================
+   PDF.JS
+====================================== */
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+
+let pdfDoc = null;
+
+let pageNum = 1;
+
+let scale = 1.2;
+
+let rendering = false;
+
+let pendingPage = null;
+
+
+const canvas =
+document.getElementById("pdfCanvas");
+
+const ctx =
+canvas.getContext("2d");
+
+
+/* ======================================
+   LOAD LIBRARY
+====================================== */
 
 async function loadLibrary(){
 
  try{
 
   const response =
-  await fetch(API + "?action=library");
+  await fetch(API_URL);
+
+  if(!response.ok){
+   throw new Error(
+    "HTTP " + response.status
+   );
+  }
+
 
   const data =
   await response.json();
 
-  if(!data.success)
+
+  if(!data.success){
    throw new Error(data.error);
+  }
+
 
   const library =
   document.getElementById("library");
 
+
   library.innerHTML="";
 
+
   renderItems(
-   data.folders,
+   data.items,
    library
   );
 
- }catch(err){
+
+ }catch(error){
+
+  console.error(error);
 
   document.getElementById("library")
   .innerHTML =
-  "<p>Không tải được thư viện.</p>";
-
-  console.error(err);
+  "<p>Không tải được thư viện tài liệu.</p>";
 
  }
 
 }
 
 
+
+/* ======================================
+   RENDER FOLDER / FILE
+====================================== */
+
 function renderItems(items,parent){
 
- items.forEach(item=>{
 
-  if(item.type==="folder"){
-
-   const folder =
-   document.createElement("div");
-
-   folder.className="folder";
-
-   const title =
-   document.createElement("div");
-
-   title.className="folder-title";
-
-   title.textContent =
-   item.name;
-
-   folder.appendChild(title);
-
-   const content =
-   document.createElement("div");
-
-   content.className="subfolder";
-
-   folder.appendChild(content);
-
-   parent.appendChild(folder);
-
-   renderItems(
-    item.children,
-    content
-   );
-
-  }
-
- });
-
-
- const files =
+ const folders =
  items.filter(
-  item=>item.type==="file"
+  x => x.type==="folder"
  );
 
 
- if(files.length){
+ const pdfs =
+ items.filter(
+  x => x.type==="pdf"
+ );
+
+
+ /* PDF trong folder hiện tại */
+
+ if(pdfs.length){
 
   const grid =
   document.createElement("div");
 
-  grid.className="files";
+  grid.className="grid";
 
 
-  files.forEach(file=>{
+  pdfs.forEach(file=>{
 
    const card =
    document.createElement("div");
 
-   card.className="file";
-
-   card.innerHTML =
-   '<div class="icon">📄</div>'+
-   '<div class="name">'+
-   escapeHTML(file.name)+
-   '</div>';
+   card.className="card";
 
 
-   card.onclick=()=>{
+   const icon =
+   document.createElement("div");
+
+   icon.className="pdfIcon";
+
+   icon.textContent="PDF";
+
+
+   const name =
+   document.createElement("div");
+
+   name.className="pdfName";
+
+   name.textContent=file.name;
+
+
+   card.appendChild(icon);
+
+   card.appendChild(name);
+
+
+   card.onclick=function(){
 
     openPDF(
      file.name,
-     file.preview
+     file.url
     );
 
    };
@@ -307,27 +517,339 @@ function renderItems(items,parent){
 
  }
 
+
+ /* Folder con */
+
+ folders.forEach(folder=>{
+
+  const box =
+  document.createElement("div");
+
+  box.className="folder";
+
+
+  const title =
+  document.createElement("div");
+
+  title.className="folderTitle";
+
+  title.textContent =
+  folder.name;
+
+
+  box.appendChild(title);
+
+
+  const content =
+  document.createElement("div");
+
+  content.className="subfolder";
+
+
+  box.appendChild(content);
+
+  parent.appendChild(box);
+
+
+  renderItems(
+   folder.items,
+   content
+  );
+
+ });
+
 }
 
 
-function openPDF(name,url){
 
- document.getElementById(
-  "viewerTitle"
- ).textContent=name;
+/* ======================================
+   OPEN PDF
+====================================== */
 
- document.getElementById(
-  "pdfFrame"
- ).src=url;
+async function openPDF(name,url){
 
  document.getElementById(
   "viewer"
  ).style.display="block";
 
- document.body.style.overflow="hidden";
+
+ document.body.style.overflow=
+ "hidden";
+
+
+ document.getElementById(
+  "documentTitle"
+ ).textContent=name;
+
+
+ document.getElementById(
+  "loadingPDF"
+ ).style.display="block";
+
+
+ pageNum=1;
+
+ scale=1.2;
+
+
+ try{
+
+  const loadingTask =
+  pdfjsLib.getDocument({
+   url:url
+  });
+
+
+  pdfDoc =
+  await loadingTask.promise;
+
+
+  document.getElementById(
+   "pageCount"
+  ).textContent=
+  pdfDoc.numPages;
+
+
+  await fitWidth();
+
+
+ }catch(error){
+
+  console.error(error);
+
+  alert(
+   "Không tải được PDF.\n\n" +
+   "Kiểm tra quyền chia sẻ của file Google Drive."
+  );
+
+ }
+
+
+ document.getElementById(
+  "loadingPDF"
+ ).style.display="none";
 
 }
 
+
+
+/* ======================================
+   RENDER PAGE
+====================================== */
+
+async function renderPage(num){
+
+ if(!pdfDoc)
+  return;
+
+
+ if(rendering){
+
+  pendingPage=num;
+
+  return;
+
+ }
+
+
+ rendering=true;
+
+
+ document.getElementById(
+  "loadingPDF"
+ ).style.display="block";
+
+
+ const page =
+ await pdfDoc.getPage(num);
+
+
+ const viewport =
+ page.getViewport({
+  scale:scale
+ });
+
+
+ canvas.width =
+ Math.floor(viewport.width);
+
+
+ canvas.height =
+ Math.floor(viewport.height);
+
+
+ await page.render({
+
+  canvasContext:ctx,
+
+  viewport:viewport
+
+ }).promise;
+
+
+ rendering=false;
+
+
+ document.getElementById(
+  "loadingPDF"
+ ).style.display="none";
+
+
+ document.getElementById(
+  "pageNum"
+ ).textContent=
+ pageNum;
+
+
+ updateButtons();
+
+
+ if(pendingPage!==null){
+
+  const next =
+  pendingPage;
+
+  pendingPage=null;
+
+  renderPage(next);
+
+ }
+
+}
+
+
+
+/* ======================================
+   PAGE CONTROL
+====================================== */
+
+function prevPage(){
+
+ if(!pdfDoc || pageNum<=1)
+  return;
+
+ pageNum--;
+
+ renderPage(pageNum);
+
+ scrollViewerTop();
+
+}
+
+
+function nextPage(){
+
+ if(
+  !pdfDoc ||
+  pageNum>=pdfDoc.numPages
+ )
+ return;
+
+ pageNum++;
+
+ renderPage(pageNum);
+
+ scrollViewerTop();
+
+}
+
+
+
+/* ======================================
+   ZOOM
+====================================== */
+
+function zoomIn(){
+
+ scale += .15;
+
+ renderPage(pageNum);
+
+}
+
+
+function zoomOut(){
+
+ if(scale<=.4)
+  return;
+
+ scale -= .15;
+
+ renderPage(pageNum);
+
+}
+
+
+
+/* ======================================
+   FIT WIDTH
+====================================== */
+
+async function fitWidth(){
+
+ if(!pdfDoc)
+  return;
+
+
+ const page =
+ await pdfDoc.getPage(pageNum);
+
+
+ const viewport =
+ page.getViewport({
+  scale:1
+ });
+
+
+ const area =
+ document.getElementById(
+  "canvasArea"
+ );
+
+
+ const available =
+ area.clientWidth - 40;
+
+
+ scale =
+ available /
+ viewport.width;
+
+
+ if(scale>2.2)
+  scale=2.2;
+
+
+ await renderPage(pageNum);
+
+}
+
+
+
+/* ======================================
+   BUTTON STATUS
+====================================== */
+
+function updateButtons(){
+
+ document.getElementById(
+  "prevBtn"
+ ).disabled =
+ pageNum<=1;
+
+
+ document.getElementById(
+  "nextBtn"
+ ).disabled =
+ pageNum>=pdfDoc.numPages;
+
+}
+
+
+
+/* ======================================
+   CLOSE
+====================================== */
 
 function closeViewer(){
 
@@ -335,19 +857,32 @@ function closeViewer(){
   "viewer"
  ).style.display="none";
 
- document.getElementById(
-  "pdfFrame"
- ).src="";
 
  document.body.style.overflow="";
+
+
+ pdfDoc=null;
+
+
+ canvas.width=1;
+
+ canvas.height=1;
 
 }
 
 
-function fullscreen(){
+
+/* ======================================
+   FULLSCREEN
+====================================== */
+
+function fullScreen(){
 
  const viewer =
- document.getElementById("viewer");
+ document.getElementById(
+  "viewer"
+ );
+
 
  if(!document.fullscreenElement){
 
@@ -362,17 +897,56 @@ function fullscreen(){
 }
 
 
-function escapeHTML(text){
 
- const div =
- document.createElement("div");
+/* ======================================
+   SCROLL TOP
+====================================== */
 
- div.textContent=text;
+function scrollViewerTop(){
 
- return div.innerHTML;
+ document.getElementById(
+  "canvasArea"
+ ).scrollTop=0;
 
 }
 
+
+
+/* ======================================
+   KEYBOARD
+====================================== */
+
+window.addEventListener(
+ "keydown",
+ function(e){
+
+  if(
+   document.getElementById(
+    "viewer"
+   ).style.display!=="block"
+  )
+  return;
+
+
+  if(e.key==="ArrowLeft")
+   prevPage();
+
+
+  if(e.key==="ArrowRight")
+   nextPage();
+
+
+  if(e.key==="Escape")
+   closeViewer();
+
+ }
+);
+
+
+
+/* ======================================
+   START
+====================================== */
 
 loadLibrary();
 
