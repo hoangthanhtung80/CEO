@@ -1,0 +1,466 @@
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CEO Library</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    font-family:Arial,sans-serif;
+    background:#e9edf2;
+}
+
+#app{
+    width:100%;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+#toolbar{
+    min-height:52px;
+    background:#fff;
+    border-bottom:1px solid #d5d5d5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:6px 10px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);
+    z-index:10;
+}
+
+button{
+    border:1px solid #ccc;
+    background:#fff;
+    padding:7px 12px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+button:hover{
+    background:#f2f2f2;
+}
+
+button:disabled{
+    opacity:.4;
+    cursor:default;
+}
+
+#pageInfo{
+    min-width:100px;
+    text-align:center;
+    font-size:14px;
+}
+
+#viewer{
+    flex:1;
+    overflow:auto;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:16px;
+}
+
+#canvasWrapper{
+    position:relative;
+}
+
+canvas{
+    display:block;
+    background:#fff;
+    box-shadow:0 3px 15px rgba(0,0,0,.18);
+}
+
+#loading{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:rgba(255,255,255,.95);
+    padding:12px 20px;
+    border-radius:7px;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+    display:none;
+}
+
+#error{
+    padding:30px;
+    text-align:center;
+    color:#a00000;
+    display:none;
+}
+
+@media(max-width:650px){
+    #toolbar{
+        gap:4px;
+        padding:5px;
+    }
+
+    button{
+        padding:6px 8px;
+        font-size:12px;
+    }
+
+    #pageInfo{
+        min-width:75px;
+        font-size:12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <div id="toolbar">
+
+        <button id="prevBtn" onclick="prevPage()">◀</button>
+
+        <span id="pageInfo">
+            <span id="pageNum">1</span> /
+            <span id="pageCount">...</span>
+        </span>
+
+        <button id="nextBtn" onclick="nextPage()">▶</button>
+
+        <button onclick="zoomOut()">−</button>
+
+        <button onclick="fitWidth()">Vừa trang</button>
+
+        <button onclick="zoomIn()">+</button>
+
+        <button onclick="fullscreen()">⛶</button>
+
+        <button onclick="openPDF()">PDF</button>
+
+    </div>
+
+    <div id="viewer">
+
+        <div id="canvasWrapper">
+            <canvas id="pdfCanvas"></canvas>
+            <div id="loading">Đang tải...</div>
+        </div>
+
+        <div id="error"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+
+const GITHUB_RAW =
+"https://raw.githubusercontent.com/hoangthanhtung80/CEO/main/";
+
+
+const params = new URLSearchParams(window.location.search);
+
+const file = params.get("file");
+
+
+let pdfDoc = null;
+let pageNum = 1;
+let scale = 1.2;
+let rendering = false;
+let pendingPage = null;
+
+const canvas =
+document.getElementById("pdfCanvas");
+
+const ctx =
+canvas.getContext("2d");
+
+const loading =
+document.getElementById("loading");
+
+
+if(!file){
+
+    showError(
+        "Chưa chọn tài liệu PDF.<br><br>" +
+        "URL phải có dạng:<br>" +
+        "?file=ten-file.pdf"
+    );
+
+}else{
+
+    loadPDF();
+
+}
+
+
+function loadPDF(){
+
+    loading.style.display="block";
+
+    const pdfURL =
+    GITHUB_RAW + encodeURIComponent(file);
+
+    pdfjsLib.getDocument(pdfURL).promise
+
+    .then(function(pdf){
+
+        pdfDoc = pdf;
+
+        document.getElementById("pageCount").textContent =
+        pdf.numPages;
+
+        loading.style.display="none";
+
+        fitWidth();
+
+    })
+
+    .catch(function(error){
+
+        console.error(error);
+
+        loading.style.display="none";
+
+        showError(
+            "Không tải được PDF.<br><br>" +
+            "Kiểm tra tên file hoặc repository."
+        );
+
+    });
+
+}
+
+
+function renderPage(num){
+
+    if(!pdfDoc) return;
+
+    if(rendering){
+
+        pendingPage = num;
+        return;
+
+    }
+
+    rendering = true;
+    loading.style.display="block";
+
+    pdfDoc.getPage(num).then(function(page){
+
+        const viewport =
+        page.getViewport({scale:scale});
+
+        canvas.width =
+        Math.floor(viewport.width);
+
+        canvas.height =
+        Math.floor(viewport.height);
+
+        const renderContext = {
+            canvasContext:ctx,
+            viewport:viewport
+        };
+
+        page.render(renderContext).promise
+        .then(function(){
+
+            rendering=false;
+
+            loading.style.display="none";
+
+            document.getElementById("pageNum").textContent =
+            pageNum;
+
+            updateButtons();
+
+            if(pendingPage !== null){
+
+                const p = pendingPage;
+                pendingPage = null;
+
+                renderPage(p);
+
+            }
+
+        });
+
+    });
+
+}
+
+
+function prevPage(){
+
+    if(!pdfDoc || pageNum<=1) return;
+
+    pageNum--;
+
+    renderPage(pageNum);
+
+    scrollTop();
+
+}
+
+
+function nextPage(){
+
+    if(!pdfDoc || pageNum>=pdfDoc.numPages) return;
+
+    pageNum++;
+
+    renderPage(pageNum);
+
+    scrollTop();
+
+}
+
+
+function zoomIn(){
+
+    scale += .15;
+
+    renderPage(pageNum);
+
+}
+
+
+function zoomOut(){
+
+    if(scale<=.4) return;
+
+    scale -= .15;
+
+    renderPage(pageNum);
+
+}
+
+
+function fitWidth(){
+
+    if(!pdfDoc) return;
+
+    pdfDoc.getPage(pageNum).then(function(page){
+
+        const base =
+        page.getViewport({scale:1});
+
+        const viewer =
+        document.getElementById("viewer");
+
+        const available =
+        viewer.clientWidth - 40;
+
+        scale =
+        available / base.width;
+
+        if(scale>2.2) scale=2.2;
+
+        renderPage(pageNum);
+
+    });
+
+}
+
+
+function updateButtons(){
+
+    document.getElementById("prevBtn").disabled =
+    pageNum<=1;
+
+    document.getElementById("nextBtn").disabled =
+    pageNum>=pdfDoc.numPages;
+
+}
+
+
+function scrollTop(){
+
+    document.getElementById("viewer").scrollTop=0;
+
+}
+
+
+function fullscreen(){
+
+    const element =
+    document.getElementById("app");
+
+    if(!document.fullscreenElement){
+
+        element.requestFullscreen();
+
+    }else{
+
+        document.exitFullscreen();
+
+    }
+
+}
+
+
+function openPDF(){
+
+    if(!file) return;
+
+    const url =
+    GITHUB_RAW + encodeURIComponent(file);
+
+    window.open(url,"_blank");
+
+}
+
+
+function showError(message){
+
+    document.getElementById("canvasWrapper").style.display =
+    "none";
+
+    const error =
+    document.getElementById("error");
+
+    error.innerHTML = message;
+
+    error.style.display =
+    "block";
+
+}
+
+
+window.addEventListener("keydown",function(e){
+
+    if(e.key==="ArrowLeft")
+        prevPage();
+
+    if(e.key==="ArrowRight")
+        nextPage();
+
+});
+
+
+window.addEventListener("resize",function(){
+
+    if(pdfDoc)
+        fitWidth();
+
+});
+
+</script>
+
+</body>
+</html>
+```
